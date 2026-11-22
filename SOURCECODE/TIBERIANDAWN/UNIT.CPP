@@ -392,6 +392,7 @@ void UnitClass::AI(void)
 	*/
 	if (Class->IsToHarvest) {
 		JMod_Harvester_Defence(this);
+		JMod_Refinery_Repair(this);	// JamesMod: repairs while docked at a refinery
 	}
 
 	/*

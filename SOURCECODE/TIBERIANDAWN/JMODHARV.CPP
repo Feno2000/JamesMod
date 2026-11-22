@@ -181,3 +181,41 @@ int JMod_Harvester_Guard(UnitClass * unit)
 	}
 	return TICKS_PER_SECOND;
 }
+
+
+/*
+** ---------------------------------------------------------------------------------------
+** Refinery repairs: a harvester docked at a refinery (in radio contact while unloading)
+** is repaired a little each interval, paid for like the repair bay. The cost is
+** RepairCostPercent of the harvester's price for a full 0 -> 100% repair.
+** ---------------------------------------------------------------------------------------
+*/
+static long NextRepair[JMOD_MAX_UNITS];
+
+void JMod_Refinery_Repair(UnitClass * unit)
+{
+	if (!JMod.RefRepair || unit == NULL || !unit->Class->IsToHarvest) return;
+	if (!unit->In_Radio_Contact()) return;
+	TechnoClass * dock = unit->Contact_With_Whom();
+	if (dock == NULL || dock->What_Am_I() != RTTI_BUILDING || *((BuildingClass *)dock) != STRUCT_REFINERY) return;
+	if (dock->House != unit->House) return;
+
+	int maxhp = unit->Class->MaxStrength;
+	if (unit->Strength <= 0 || unit->Strength >= maxhp) return;
+
+	int id = Units.ID(unit);
+	if (id < 0 || id >= JMOD_MAX_UNITS) return;
+	if (NextRepair[id] > Frame + JMod.RefRepairRate) NextRepair[id] = 0;		// new game
+	if (Frame < NextRepair[id]) return;
+	NextRepair[id] = Frame + JMod.RefRepairRate;
+
+	int step = JMod.RefRepairStep;
+	if (step > maxhp - unit->Strength) step = maxhp - unit->Strength;
+	int cost = (int)(((long)unit->Class->Raw_Cost() * JMod.RefRepairCostPercent / 100) * step / maxhp);
+	if (cost < 1) cost = 1;
+	if (unit->House->Available_Money() < cost) return;			// can't afford it - no repair
+
+	unit->House->Spend_Money(cost);
+	unit->Strength += step;
+	unit->Mark(MARK_CHANGE);
+}

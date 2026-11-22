@@ -491,6 +491,8 @@
     <ClCompile Include="JMOD.CPP" />
     <ClCompile Include="JMODHARV.CPP" />
     <ClCompile Include="JMODCRASH.CPP" />
+    <ClCompile Include="JMODAI.CPP" />
+    <ClCompile Include="JMODPROD.CPP" />
     <ClCompile Include="SAVELOAD.CPP" />
     <ClCompile Include="SCENARIO.CPP" />
     <ClCompile Include="SCORE.CPP" />

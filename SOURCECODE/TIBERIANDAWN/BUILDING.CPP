@@ -100,6 +100,7 @@
 ** New sidebar for GlyphX multiplayer. ST - 3/26/2019 12:24PM
 */
 #include "SidebarGlyphx.h"
+#include "JMOD.H"
 
 
 enum SAMState {
@@ -1162,10 +1163,14 @@ void BuildingClass::AI(void)
 		if (Scenario > 6) ratio = 0x0080;
 		if (Scenario > 10) ratio = 0x00C0;
 		if (Class->IsRepairable && Health_Ratio() <= (unsigned) ratio) {
-			if (House->Available_Money() >= REPAIR_THRESHHOLD) {
+			/*
+			**	JamesMod: in skirmish, repair with much less money in the bank, and never sell damaged buildings.
+			*/
+			bool jm = JMod.AINoSelling && GameToPlay != GAME_NORMAL;
+			if (House->Available_Money() >= (jm ? JMod.AIRepairMinMoney : REPAIR_THRESHHOLD)) {
 				Repair(1);
 			} else {
-				if (IsTickedOff && (int)Scenario > 2 && Random_Pick(0, 50) < (int)Scenario && !Trigger) {
+				if (!jm && IsTickedOff && (int)Scenario > 2 && Random_Pick(0, 50) < (int)Scenario && !Trigger) {
 					if (GameToPlay != GAME_NORMAL || Scenario != 15 || PlayerPtr->ActLike != HOUSE_GOOD || *this != STRUCT_TEMPLE) {
 						Sell_Back(1);
 					}

@@ -55,6 +55,12 @@ class FactoryClass;	// ST - 7/17/2019 11:54AM
 */
 //#define	REBUILD_MAX		5		// Maximum number of structures to rebuild.
 class HouseClass {
+		friend void JMod_Wave_AI(HouseClass * house);	// JamesMod: reads production counts (BQuantity etc.)
+		friend StructType JMod_Extra_Building(HouseClass * house);	// JamesMod: base growth
+		friend StructType JMod_Defence_Needed(HouseClass * house);	// JamesMod: guaranteed defences
+		friend int Defence_Count(HouseClass * house);
+		friend int Defence_Target(HouseClass * house);
+
 	public:
 		/*
 		**	Pointer to the HouseTypeClass that this house is "owned" by.

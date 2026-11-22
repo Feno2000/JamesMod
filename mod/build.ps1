@@ -18,8 +18,16 @@ if (Get-Process -Name InstanceServerG -ErrorAction SilentlyContinue) {
 
 $target = if ($Rebuild) { 'Rebuild' } else { 'Build' }
 Write-Host "Building TiberianDawn (Release|Win32, $target)..." -ForegroundColor Cyan
-& $msbuild $proj /t:$target /p:Configuration=Release /p:Platform=Win32 /m /nologo /v:minimal
-if ($LASTEXITCODE -ne 0) { throw "Build failed (exit code $LASTEXITCODE) - nothing installed." }
+$log = & $msbuild $proj /t:$target /p:Configuration=Release /p:Platform=Win32 /m /nologo /v:minimal 2>&1
+$code = $LASTEXITCODE
+$log | Out-File (Join-Path $here 'build.log') -Encoding utf8
+if ($code -ne 0) {
+    Write-Host ""
+    Write-Host "BUILD FAILED - errors:" -ForegroundColor Red
+    $log | Where-Object { $_ -match ': (fatal )?error ' -or $_ -match 'warning treated as error' } | Select-Object -Unique | ForEach-Object { Write-Host "  $_" -ForegroundColor Red }
+    Write-Host "(full output in mod\build.log)"
+    exit 1
+}
 Write-Host "Build succeeded." -ForegroundColor Green
 
 if (-not $NoInstall) { & (Join-Path $here 'install.ps1') }

@@ -4666,7 +4666,7 @@ COORDINATE HouseClass::Find_Build_Location(BuildingClass * building) const
 	for (int zz = 0; zz < ARRAY_SIZE(_zones); zz++) {
 		ZoneType tryzone = _zones[(zz + start) % ARRAY_SIZE(_zones)];
 		zcell = Find_Cell_In_Zone(building, tryzone);
-		if (zcell) return(zcell);
+		if (zcell) return(Cell_Coord(zcell));	// JamesMod: was returning a CELL as a COORDINATE (EA bug)
 	}
 
 	return(NULL);

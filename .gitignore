@@ -8,3 +8,4 @@ Win32/
 *.pdb
 *.LOG
 voices/
+mod/build.log

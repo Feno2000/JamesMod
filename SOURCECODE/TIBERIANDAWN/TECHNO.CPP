@@ -112,6 +112,7 @@
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include	"function.h"
+#include "JMOD.H"
 
 
 /***************************************************************************
@@ -343,6 +344,11 @@ int TechnoTypeClass::Time_To_Build(HousesType house) const
 		inv_scale = 171;
 	}
 	time = (time * 256) / inv_scale;
+
+	/*
+	**	JamesMod: extra factories of the right type speed up production.
+	*/
+	time = JMod_Factory_Time(time, What_Am_I(), hptr);
 
 	return(time);
 }

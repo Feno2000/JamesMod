@@ -104,6 +104,7 @@
 */
 #include "SidebarGlyphx.h"
 #include "defines.h"
+#include "JMOD.H"
 
 
 /***********************************************************************************************
@@ -1592,6 +1593,11 @@ void HouseClass::AI(void)
 		/*
 		** Perform any expert system AI processing.
 		*/
+		/*
+		**	JamesMod: organised attack waves (replaces AI_Attack's timed hunt when enabled).
+		*/
+		JMod_Wave_AI(this);
+
 		if (IsBaseBuilding && AITimer == 0) {
 			AITimer = Expert_AI();
 		}
@@ -5226,10 +5232,13 @@ COORDINATE HouseClass::Find_Build_Location(BuildingClass * building) const
 	for (int zz = 0; zz < ARRAY_SIZE(_zones); zz++) {
 		ZoneType tryzone = _zones[(zz + start) % ARRAY_SIZE(_zones)];
 		zcell = Find_Cell_In_Zone(building, tryzone);
-		if (zcell) return(zcell);
+		if (zcell) return(Cell_Coord(zcell));	// JamesMod: was returning a CELL as a COORDINATE (EA bug) - AI could never place in fallback zones
 	}
 
-	return(NULL);
+	/*
+	**	JamesMod: stock zones exhausted - search the wider area around the base.
+	*/
+	return(JMod_Find_Build_Location(this, building));
 }
 
 
@@ -5771,6 +5780,7 @@ UrgencyType HouseClass::Check_Build_Income(void) const
 UrgencyType HouseClass::Check_Fire_Sale(void) const
 {
 	//assert(Houses.ID(this) == ID);
+	if (JMod.AINoSelling && !IsHuman && GameToPlay != GAME_NORMAL) return(URGENCY_NONE);	// JamesMod: no fire sale
 
 	/*
 	**	If there are no more factories at all, then sell everything off because the game
@@ -5823,6 +5833,7 @@ UrgencyType HouseClass::Check_Raise_Money(void) const
 UrgencyType HouseClass::Check_Lower_Power(void) const
 {
 	//assert(Houses.ID(this) == ID);
+	if (JMod.AINoSelling && !IsHuman && GameToPlay != GAME_NORMAL) return(URGENCY_NONE);	// JamesMod: don't sell power plants
 
 	if (Power > Drain+300) {
 		return(URGENCY_LOW);
@@ -5857,6 +5868,14 @@ UrgencyType HouseClass::Check_Raise_Power(void) const
 bool HouseClass::AI_Attack(UrgencyType )
 {
 	//assert(Houses.ID(this) == ID);
+
+	/*
+	**	JamesMod: the wave controller (JMODAI.CPP) handles attacks for this house.
+	*/
+	if (JMod_Wave_Controls(this)) {
+		Attack = Rule.AttackInterval * Random_Pick(TICKS_PER_MINUTE/2, TICKS_PER_MINUTE*2);
+		return(true);
+	}
 
 	bool shuffle = !((Frame > TICKS_PER_MINUTE && !CurBuildings) || Percent_Chance(33));
 	bool forced = (CurBuildings == 0);
@@ -6419,7 +6438,7 @@ int HouseClass::AI_Building(void)
 		**	Always build up some base defense.
 		*/
 		//current = BQuantity[STRUCT_PILLBOX] + BQuantity[STRUCT_CAMOPILLBOX] + BQuantity[STRUCT_TURRET] + BQuantity[STRUCT_FLAME_TURRET];
-		current = BQuantity[STRUCT_TURRET] + BQuantity[STRUCT_OBELISK];
+		current = BQuantity[STRUCT_TURRET] + BQuantity[STRUCT_OBELISK] + BQuantity[STRUCT_GTOWER] + BQuantity[STRUCT_ATOWER];	// JamesMod: count GDI towers too
 		if (current < Round_Up(Rule.DefenseRatio*fixed(CurBuildings)) && current < (unsigned)Rule.DefenseLimit) {
 			//b = &BuildingTypeClass::As_Reference(STRUCT_FLAME_TURRET);
 			b = &BuildingTypeClass::As_Reference(STRUCT_OBELISK);
@@ -6599,8 +6618,24 @@ int HouseClass::AI_Building(void)
 				best = BuildChoice.Ptr(index)->Urgency;
 			}
 		}
+		/*
+		**	JamesMod: guaranteed defences take priority over the stock choice (power is handled first inside).
+		*/
+		StructType jm_def = JMod_Defence_Needed(this);
+		if (jm_def != STRUCT_NONE) {
+			BuildStructure = jm_def;
+			return(TICKS_PER_SECOND);
+		}
+
 		if (best != URGENCY_NONE) {
 			BuildStructure = BuildChoice.Ptr(bestindex)->Structure;
+		}
+
+		/*
+		**	JamesMod: nothing on the stock list - keep growing the base if there's money.
+		*/
+		if (best == URGENCY_NONE) {
+			BuildStructure = JMod_Extra_Building(this);
 		}
 	}
 
@@ -6633,7 +6668,21 @@ int HouseClass::AI_Unit(void)
 	**	A computer controlled house will try to build a replacement
 	**	harvester if possible.
 	*/
-	if (IQ >= Rule.IQHarvester && !IsTiberiumShort && !IsHuman && BQuantity[STRUCT_REFINERY] > UQuantity[UNIT_HARVESTER] && Difficulty != DIFF_HARD) {
+	/*
+	**	JamesMod: lost the construction yard but still have a war factory - build an MCV to replace it.
+	**	(Computer MCVs deploy themselves via Mission_Guard.)
+	*/
+	if (JMod.AIRebuildConYard && !IsHuman && GameToPlay != GAME_NORMAL && BQuantity[STRUCT_CONST] == 0 && UQuantity[UNIT_MCV] == 0 &&
+			Can_Build(&UnitTypeClass::As_Reference(UNIT_MCV), ActLike) && UnitTypeClass::As_Reference(UNIT_MCV).Cost_Of() <= Available_Money()) {
+		BuildUnit = UNIT_MCV;
+		JMod_Trace("AI %s: no construction yard - building an MCV", Class->IniName);
+		return(TICKS_PER_SECOND);
+	}
+
+	/*
+	**	JamesMod: keep HarvestersPerRefinery harvesters per refinery, and (optionally) do it on Hard too.
+	*/
+	if (IQ >= Rule.IQHarvester && !IsTiberiumShort && !IsHuman && BQuantity[STRUCT_REFINERY] * JMod.AIHarvPerRefinery > UQuantity[UNIT_HARVESTER] && (Difficulty != DIFF_HARD || JMod.AIReplaceHarvOnHard)) {
 		//if (UnitTypeClass::As_Reference(UNIT_HARVESTER).Level <= (unsigned)Control.TechLevel) {
 		if (UnitTypeClass::As_Reference(UNIT_HARVESTER).Level <= (unsigned)BuildLevel) {
 			BuildUnit = UNIT_HARVESTER;
@@ -6737,6 +6786,7 @@ int HouseClass::AI_Unit(void)
 				//if (utype->PrimaryWeapon != NULL) {
 				if (utype->Primary != WEAPON_NONE) {
 					counter[index] = 20;
+					if (JMod.AIPreferHeavy) counter[index] = 10 + utype->Cost_Of() / 40;	// JamesMod: favour heavier units (buggy ~17, light tank 25, mammoth ~47)
 				} else {
 					counter[index] = 1;
 				}
@@ -6896,6 +6946,16 @@ int HouseClass::AI_Infantry(void)
 
 	if (BuildInfantry != INFANTRY_NONE) return(TICKS_PER_SECOND);
 	if (CurInfantry >= Control.MaxInfantry) return(TICKS_PER_SECOND);
+
+	/*
+	**	JamesMod: keep the army balanced - stop training infantry once there are more than
+	**	MaxInfantryPerVehicle per combat vehicle (plus a small base allowance).
+	*/
+	if (JMod.AIInfPerVehicle > 0 && !IsHuman && GameToPlay != GAME_NORMAL) {
+		int vehicles = (int)CurUnits - (int)CurInfantry - UQuantity[UNIT_HARVESTER] - UQuantity[UNIT_MCV];
+		if (vehicles < 0) vehicles = 0;
+		if ((int)CurInfantry >= 6 + vehicles * JMod.AIInfPerVehicle) return(TICKS_PER_SECOND);
+	}
 
 	//if (Session.Type == GAME_NORMAL) {
 	if (GameToPlay == GAME_NORMAL) {		// Not used for skirmish? ST - 7/24/2019 2:59PM

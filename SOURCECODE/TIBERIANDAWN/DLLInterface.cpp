@@ -1721,6 +1721,8 @@ extern "C" __declspec(dllexport) bool __cdecl CNC_Save_Load(bool save, const cha
 			}
 		}
 		
+		JMod_Wave_Reset();	// JamesMod: side-table state doesn't survive a load
+		JMod_Load();		// JamesMod: read JAMESMOD.INI for loaded games too
 		result = Load_Game(file_path_and_name);
 
 		if (result == false)
