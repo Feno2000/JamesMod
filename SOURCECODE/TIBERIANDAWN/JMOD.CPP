@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-JModConfig JMod = { false, 100, 0, true, true, true, false, 3, 15, 15, true, 20, 10, true };
+JModConfig JMod = { false, 100, 0, true, true, true, false, 3, 15, 15, true, 20, 10, true, 4 };
 
 static char IniPath[MAX_PATH];
 static char LogPath[MAX_PATH];
@@ -111,12 +111,13 @@ void JMod_Load(void)
 	JMod.HarvResumeDelay   = Read_Int("Harvester", "ResumeDelay", 20);
 	JMod.HarvSafeTime      = Read_Int("Harvester", "SafeTime", 10);
 	JMod.HarvResumeMessage = Read_Int("Harvester", "ResumeMessage", 1) != 0;
+	JMod.HarvResumeSound   = Read_Int("Harvester", "ResumeSound", 4);
 	if (JMod.HarvResumeDelay < 3) JMod.HarvResumeDelay = 3;
 	if (JMod.HarvRange < 1) JMod.HarvRange = 1;
 	if (JMod.HarvRate < 5) JMod.HarvRate = 5;
 	if (log) fprintf(log, "\n[Harvester]\n  SelfDefence=%d Player=%d AI=%d AnyEnemy=%d Range=%d Damage=%d RateOfFire=%d\n",
 		(int)JMod.HarvGun, (int)JMod.HarvGunPlayer, (int)JMod.HarvGunAI, (int)JMod.HarvGunAnyEnemy, JMod.HarvRange, JMod.HarvDamage, JMod.HarvRate);
-	if (log) fprintf(log, "  AutoResume=%d ResumeDelay=%d SafeTime=%d ResumeMessage=%d\n", (int)JMod.HarvResume, JMod.HarvResumeDelay, JMod.HarvSafeTime, (int)JMod.HarvResumeMessage);
+	if (log) fprintf(log, "  AutoResume=%d ResumeDelay=%d SafeTime=%d ResumeMessage=%d ResumeSound=%d\n", (int)JMod.HarvResume, JMod.HarvResumeDelay, JMod.HarvSafeTime, (int)JMod.HarvResumeMessage, JMod.HarvResumeSound);
 
 	if (log) {
 		fprintf(log, "\n[Game]\n  %-22s = %d\n  %-22s = %d\n", "CreditsPercent", JMod.CreditsPercent, "CreditsBonus", JMod.CreditsBonus);

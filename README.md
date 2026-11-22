@@ -50,8 +50,18 @@ armour, and automatic harvester replacement.
   - Skirmish starting credits (percentage of the lobby setting, plus a flat bonus).
   - Delete a line to go back to EA's original value.
   - `JAMESMOD.LOG` shows exactly what loaded, next to the original defaults.
-- **Builds with Visual Studio 2022.** The fixes needed to build EA's source with a modern toolchain are included.
-  See [Building](#building) and [Technical notes](#technical-notes).
+- **Harvester self-defence machine gun** (`[Harvester]` in the INI):
+  - Fires a light M60-style burst, with muzzle flash, at nearby infantry that are shooting at the harvester, such as
+    stray civilians, farmers and lone riflemen. Optionally it fires at any enemy infantry in range.
+  - Harvesters keep their original behaviour (fleeing, calling for help). Passive civilians are never targeted.
+  - It applies to both the player's and the AI's harvesters, each switchable.
+- **Harvester auto-resume:** player harvesters left idle on Guard (after chasing an attacker, or after being moved
+  out of danger) go back to harvesting once they haven't been hit for a while. Keep one selected to hold it. An
+  on-screen message and EVA's "Unit ready" tell you when one resumes.
+- **Builds with Visual Studio 2022** using the VS2017 (v141) toolset. The fixes needed to build EA's source are
+  included. See [Building](#building) and [Technical notes](#technical-notes).
+- **Crash logger:** `JAMESMOD_CRASH.LOG` records the fault and our DLL's call stack, because the game's own crash
+  reporter stops you attaching a debugger.
 
 ### Roadmap
 1. **Wave-based attacks**
@@ -72,15 +82,11 @@ armour, and automatic harvester replacement.
    - Counter-builds against your army: anti-armour against tank spam, artillery and air against turtling, flame
      units against infantry.
    - Target priorities: harvester raids, knocking out power to disable defences, probing for weak sides.
-5. **Harvester self-defence**
-   - Harvesters get a light machine gun that only fires at infantry actively shooting at them, such as farmers or
-     stray civilians.
-   - It's off by default for unarmed civilians, so missions about protecting civilians aren't broken.
-6. **Campaign support** with separate switches:
+5. **Campaign support** with separate switches:
    - smarter scripted teams,
    - optional AI-planned extra waves,
    - base rebuilding plus expansion on top of the mission's own base list.
-7. **AI personalities** (rusher, turtle, raider) chosen in the INI.
+6. **AI personalities** (rusher, turtle, raider) chosen in the INI.
 
 ---
 
@@ -96,10 +102,12 @@ armour, and automatic harvester replacement.
        JAMESMOD.INI
        Data\TiberianDawn.dll
    ```
-   `mod\install.ps1` does this for you:
+   `mod\build.ps1` builds and installs in one step (it finds MSBuild itself, so Visual Studio can stay closed):
    ```powershell
-   powershell -ExecutionPolicy Bypass -File mod\install.ps1
+   powershell -ExecutionPolicy Bypass -File mod\build.ps1            # build + install
+   powershell -ExecutionPolicy Bypass -File mod\build.ps1 -Rebuild   # clean rebuild
    ```
+   `mod\install.ps1` only copies an existing build. It never overwrites a `JAMESMOD.INI` you've already tuned.
 3. In the game, go to **Options → Mods**, enable **JamesMod**, then start a skirmish.
 4. Only **one** mod that replaces `TiberianDawn.dll` can be active at a time.
 
@@ -135,20 +143,36 @@ AirstripLimit=5
 BaseSizeAdd=3
 PowerSurplus=50
 InfantryReserve=3000
+
+[Harvester]
+SelfDefence=1         ; machine gun on harvesters
+PlayerHarvesters=1
+AIHarvesters=1
+FireAtAnyEnemy=0      ; 1 = also shoot enemy infantry in range that aren't attacking it
+Range=3               ; cells
+Damage=15             ; per burst (a rifleman does 15)
+RateOfFire=15         ; ticks between bursts
+AutoResume=1          ; idle player harvesters go back to work
+ResumeDelay=20        ; seconds idle first
+SafeTime=10           ; seconds since last hit
+ResumeMessage=1       ; on-screen message (top right)
+ResumeSound=4         ; 0 none, 1 bleep + "acknowledged", 2 bleep, 3 "vehicle reporting", 4 EVA "unit ready"
 ```
 
-New sections for waves, base planning, harvesters and the campaign will be added as those features land.
+New sections for waves, base planning and the campaign will be added as those features land.
 
 ---
 
 ## Building
 
-Requirements: **Visual Studio 2022** with *Desktop development with C++*, and a Windows 10/11 SDK. EA's README asks
-for VS2017 and the Windows 8.1 SDK; you don't need those with the changes in this repo.
+Requirements:
+- **Visual Studio 2022** with *Desktop development with C++*.
+- The individual component **"MSVC v141 – VS 2017 C++ x64/x86 build tools"**, which is EA's compiler version.
+  Builds made with the newer v143 compiler crashed mid-game in testing, so the projects target v141.
+- Windows SDK **10.0.26100.0** (pinned in the projects; change it if yours differs).
 
-1. Open `SOURCECODE\CnCRemastered.sln`, accept the retarget prompt (v143 toolset, latest SDK) and choose
-   **Release | Win32**. The game only loads 32-bit DLLs.
-2. Build. The output is `SOURCECODE\bin\Win32\TiberianDawn.dll`.
+Build with `mod\build.ps1`, or open `SOURCECODE\CnCRemastered.sln` and build **Release | Win32**. The game only
+loads 32-bit DLLs. The output is `SOURCECODE\bin\Win32\TiberianDawn.dll`.
 
 Changes made so it builds and runs on a modern toolchain:
 
@@ -158,6 +182,7 @@ Changes made so it builds and runs on a modern toolchain:
 | `RC1015 cannot open include file 'afxres.h'` | The `.rc` files now include `winres.h`, so MFC isn't needed. |
 | Old C++ that the compiler rejects | *Conformance mode* set to **No**. |
 | **Builds, then crashes on starting a game** | See the MMX register bug below. |
+| Random mid-game crashes with VS2022's v143 compiler | Build with the v141 (VS2017) toolset, as EA did. |
 
 ---
 

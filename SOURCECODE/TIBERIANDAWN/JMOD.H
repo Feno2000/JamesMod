@@ -26,6 +26,7 @@ struct JModConfig {
 	int	HarvResumeDelay;		// seconds idle before resuming
 	int	HarvSafeTime;		// seconds since last hit before resuming
 	bool	HarvResumeMessage;	// show an on-screen message when it resumes
+	int	HarvResumeSound;		// 0 none, 1 bleep + "acknowledged", 2 bleep, 3 "vehicle reporting", 4 EVA "unit ready"
 };
 
 extern JModConfig JMod;

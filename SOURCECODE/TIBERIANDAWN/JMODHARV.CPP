@@ -166,7 +166,18 @@ int JMod_Harvester_Guard(UnitClass * unit)
 	ResumedAt[id] = Frame;
 	IdleSince[id] = Frame;
 	if (JMod.HarvResumeMessage) {
-		On_Message("Harvester resuming harvesting", 6.0f, MESSAGE_TYPE_DIRECT, -1);
+		On_Message("Harvester resuming harvesting", 6.0f, MESSAGE_TYPE_DIRECT, -1);	// client may not display free text
+	}
+	/*
+	**	Audio cue: 1 = computer bleep (heard anywhere) + "acknowledged" at the harvester,
+	**	2 = bleep only, 3 = "vehicle reporting" at the harvester, 4 = EVA "unit ready", 0 = silent.
+	*/
+	switch (JMod.HarvResumeSound) {
+		case 1: Sound_Effect(VOC_BLEEPY3, (COORDINATE)0); Sound_Effect(VOC_ACKNOWL, unit->Coord); break;
+		case 2: Sound_Effect(VOC_BLEEPY3, (COORDINATE)0); break;
+		case 3: Sound_Effect(VOC_VEHIC, unit->Coord); break;
+		case 4: Speak(VOX_UNIT_READY, unit->House); break;
+		default: break;
 	}
 	return TICKS_PER_SECOND;
 }
