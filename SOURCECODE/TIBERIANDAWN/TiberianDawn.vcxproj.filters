@@ -630,6 +630,7 @@
     <ClInclude Include="DLLInterfaceVersion.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="JMOD.H" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AADATA.CPP">
@@ -1209,6 +1210,8 @@
     <ClCompile Include="RULES.CPP">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="JMOD.CPP" />
+    <ClCompile Include="JMODHARV.CPP" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="win32lib\FACINGFF.ASM">

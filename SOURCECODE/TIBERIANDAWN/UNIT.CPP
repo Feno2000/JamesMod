@@ -94,6 +94,7 @@
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include	"function.h"
+#include "JMOD.H"
 
 /*
 ** This contains the value of the Virtual Function Table Pointer
@@ -385,6 +386,13 @@ void UnitClass::AI(void)
 	}
 
 	TarComClass::AI();
+
+	/*
+	**	JamesMod: harvester self-defence machine gun.
+	*/
+	if (Class->IsToHarvest) {
+		JMod_Harvester_Defence(this);
+	}
 
 	/*
 	**	Delete this unit if it finds itself off the edge of the map and it is in
@@ -1082,6 +1090,10 @@ ResultType UnitClass::Take_Damage(int & damage, int distance, WarheadType warhea
 					}
 				}
 			}
+		}
+
+		if (*this == UNIT_HARVESTER && source) {
+			JMod_Harvester_Hit(this);	// JamesMod: remember when it was last attacked
 		}
 
 		/*
@@ -4023,6 +4035,14 @@ int UnitClass::Mission_Guard(void)
 	if (*this == UNIT_HARVESTER && !House->IsHuman) {
 		Assign_Mission(MISSION_HARVEST);
 		return(TICKS_PER_SECOND);
+	}
+
+	/*
+	**	JamesMod: player harvesters left idle resume harvesting after a while.
+	*/
+	if (*this == UNIT_HARVESTER) {
+		int jm_delay = JMod_Harvester_Guard(this);
+		if (jm_delay) return(jm_delay);
 	}
 
 #ifdef USE_RA_AI

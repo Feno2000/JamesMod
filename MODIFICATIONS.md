@@ -31,3 +31,21 @@ Electronic Arts released for the C&C Remastered Collection. In-source changes ar
   - `CNC_Set_Difficulty` skips `Set_Scenario_Difficulty` when `PlayerPtr` is NULL,
   - adds `JMod_Trace` calls at the start of each exported `CNC_*` function, and logs `DLL_Startup`'s return value.
 - `TIBERIANDAWN/DLLInterfaceEditor.cpp`: includes `JMOD.H` and adds `JMod_Trace` calls to the editor exports.
+
+## 2026-11-22: Harvester features, toolset and crash logger (JamesMod)
+
+- Projects switched to the **v141 (VS2017) toolset** and pinned to Windows SDK 10.0.26100.0. v143 builds crashed
+  mid-game.
+- **New:** `TIBERIANDAWN/JMODHARV.CPP`:
+  - harvester self-defence machine gun: muzzle flash; a bullet with no `Payback`, because harvesters have no weapon
+    slot;
+  - player harvester auto-resume from Guard.
+- **New:** `TIBERIANDAWN/JMODCRASH.CPP`. Vectored-exception crash logger, installed from `CNC_Init` only and removed
+  when the DLL unloads.
+- `TIBERIANDAWN/UNIT.CPP`:
+  - `UnitClass::AI` calls `JMod_Harvester_Defence`;
+  - `UnitClass::Take_Damage` records harvester hits;
+  - `UnitClass::Mission_Guard` calls `JMod_Harvester_Guard` for player harvesters.
+- `TIBERIANDAWN/JMOD.H`, `JMOD.CPP`: `[Harvester]` settings and `JMod_Enable_Crash_Logger()`.
+- `TIBERIANDAWN/DLLInterface.cpp`: `CNC_Init` enables the crash logger.
+- `mod/build.ps1`: builds with MSBuild, then installs.

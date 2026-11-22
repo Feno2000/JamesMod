@@ -499,6 +499,7 @@ extern "C" __declspec(dllexport) unsigned int __cdecl CNC_Version(unsigned int v
 extern "C" __declspec(dllexport) void __cdecl CNC_Init(const char *command_line, CNC_Event_Callback_Type event_callback)
 {
 	JMod_Trace("CNC_Init");
+	JMod_Enable_Crash_Logger();
 	DLLExportClass::Set_Content_Directory(NULL);
 	
 	int jm_rc = DLL_Startup(command_line);

@@ -7,11 +7,12 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-JModConfig JMod = { false, 100, 0 };
+JModConfig JMod = { false, 100, 0, true, true, true, false, 3, 15, 15, true, 20, 10, true };
 
 static char IniPath[MAX_PATH];
 static char LogPath[MAX_PATH];
 static char TracePath[MAX_PATH];
+static char RootPath[MAX_PATH];
 
 /*
 ** Work out the mod root: DLL lives in <ModRoot>\Data\TiberianDawn.dll.
@@ -32,6 +33,7 @@ static void Resolve_Paths(void)
 	_snprintf(IniPath, MAX_PATH, "%s\\JAMESMOD.INI", root);
 	_snprintf(LogPath, MAX_PATH, "%s\\JAMESMOD.LOG", root);
 	_snprintf(TracePath, MAX_PATH, "%s\\JAMESMOD_TRACE.LOG", root);
+	strncpy(RootPath, root, MAX_PATH-1);
 	IniPath[MAX_PATH-1] = LogPath[MAX_PATH-1] = TracePath[MAX_PATH-1] = '\0';
 }
 
@@ -95,6 +97,27 @@ void JMod_Load(void)
 	*/
 	JMod.CreditsPercent = Read_Int("Game", "CreditsPercent", 100);
 	JMod.CreditsBonus   = Read_Int("Game", "CreditsBonus", 0);
+	/*
+	**	Harvester self-defence machine gun.
+	*/
+	JMod.HarvGun         = Read_Int("Harvester", "SelfDefence", 1) != 0;
+	JMod.HarvGunPlayer   = Read_Int("Harvester", "PlayerHarvesters", 1) != 0;
+	JMod.HarvGunAI       = Read_Int("Harvester", "AIHarvesters", 1) != 0;
+	JMod.HarvGunAnyEnemy = Read_Int("Harvester", "FireAtAnyEnemy", 0) != 0;
+	JMod.HarvRange       = Read_Int("Harvester", "Range", 3);
+	JMod.HarvDamage      = Read_Int("Harvester", "Damage", 15);
+	JMod.HarvRate        = Read_Int("Harvester", "RateOfFire", 15);
+	JMod.HarvResume        = Read_Int("Harvester", "AutoResume", 1) != 0;
+	JMod.HarvResumeDelay   = Read_Int("Harvester", "ResumeDelay", 20);
+	JMod.HarvSafeTime      = Read_Int("Harvester", "SafeTime", 10);
+	JMod.HarvResumeMessage = Read_Int("Harvester", "ResumeMessage", 1) != 0;
+	if (JMod.HarvResumeDelay < 3) JMod.HarvResumeDelay = 3;
+	if (JMod.HarvRange < 1) JMod.HarvRange = 1;
+	if (JMod.HarvRate < 5) JMod.HarvRate = 5;
+	if (log) fprintf(log, "\n[Harvester]\n  SelfDefence=%d Player=%d AI=%d AnyEnemy=%d Range=%d Damage=%d RateOfFire=%d\n",
+		(int)JMod.HarvGun, (int)JMod.HarvGunPlayer, (int)JMod.HarvGunAI, (int)JMod.HarvGunAnyEnemy, JMod.HarvRange, JMod.HarvDamage, JMod.HarvRate);
+	if (log) fprintf(log, "  AutoResume=%d ResumeDelay=%d SafeTime=%d ResumeMessage=%d\n", (int)JMod.HarvResume, JMod.HarvResumeDelay, JMod.HarvSafeTime, (int)JMod.HarvResumeMessage);
+
 	if (log) {
 		fprintf(log, "\n[Game]\n  %-22s = %d\n  %-22s = %d\n", "CreditsPercent", JMod.CreditsPercent, "CreditsBonus", JMod.CreditsBonus);
 		fclose(log);
@@ -115,4 +138,15 @@ void JMod_Trace(const char *fmt, ...)
 	va_end(args);
 	fprintf(f, "\n");
 	fclose(f);
+}
+
+/*
+** Only called from CNC_Init, i.e. in the game-server process that keeps the DLL loaded.
+** (The client briefly loads and unloads the DLL for a version check -- a handler left
+** registered there would point at unloaded code.)
+*/
+void JMod_Enable_Crash_Logger(void)
+{
+	Resolve_Paths();
+	JMod_Install_Crash_Logger(RootPath);
 }
