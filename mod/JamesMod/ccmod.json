@@ -1,0 +1,9 @@
+{
+"name": "JamesMod",
+"description": "Tougher, tunable Tiberian Dawn AI and skirmish tweaks. Edit JAMESMOD.INI.",
+"author": "James",
+"load_order": 1,
+"version_low": 1,
+"version_high": 0,
+"game_type": "TD"
+}
